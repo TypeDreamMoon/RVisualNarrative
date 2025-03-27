@@ -64,8 +64,8 @@ TODO
 
 ## Contributors
 
-**<a href="https://github.com/yourusername/RVisualNarrative/graphs/contributors">**
-**<img src="https://contrib.rocks/image?repo=yourusername/RVisualNarrative"/>**
+**<a href="https://github.com/Srkmn/RVisualNarrative/graphs/contributors">**
+**<img src="https://contrib.rocks/image?repo=Srkmn/RVisualNarrative"/>**
 **</a>**
 
 ---
