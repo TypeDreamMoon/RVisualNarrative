@@ -1,7 +1,7 @@
 # RVisualNarrative
-
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Srkmn/RVisualNarrative/blob/main/LICENSE)
-[![QQ群](https://img.shields.io/badge/QQ群-123456789-blue?logo=tencentqq&style=flat-square)](https://qm.qq.com/q/ATfliiSGxG)
+[![QQ群](https://img.shields.io/badge/QQ群-1039586349-800020?logo=tencentqq&style=flat-square)](https://qm.qq.com/q/ATfliiSGxG)
+[![GitHub release](https://img.shields.io/github/v/release/Srkmn/RVisualNarrative?color=800020&style=flat-square)](https://github.com/Srkmn/RVisualNarrative/releases)  
 
 ## 简介
 
@@ -61,14 +61,6 @@ TODO
 ## 社区
 
 - [官方QQ群：1039586349](https://qm.qq.com/q/ATfliiSGxG)
-
-## 许可证
-
-本项目采用 MIT 许可证，详情请参见 LICENSE 文件。
-
-## 联系
-
-如有任何问题，请提交 GitHub Issues。
 
 ## Contributors
 
