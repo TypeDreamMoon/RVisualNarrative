@@ -1,10 +1,13 @@
 # RVisualNarrative
 
+[![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Srkmn/RVisualNarrative/blob/main/LICENSE)
+[![QQ群](https://img.shields.io/badge/QQ群-123456789-blue?logo=tencentqq&style=flat-square)](https://qm.qq.com/q/ATfliiSGxG)
+
 ## 简介
 
 RVisualNarrative 是一款为虚幻引擎(Unreal Engine)开发的跨版本对话编辑器插件，旨在提供可视化、灵活且高效的剧情对话编辑解决方案。
 
-## 支持版本  
+## 支持版本
 
 - 支持 Unreal Engine 5.0 到 5.5 版本
 
@@ -55,21 +58,25 @@ RVisualNarrative 是一款为虚幻引擎(Unreal Engine)开发的跨版本对话
 
 TODO
 
+## 社区
+
+- [官方QQ群：1039586349](https://qm.qq.com/q/ATfliiSGxG)
 
 ## 许可证
 
 本项目采用 MIT 许可证，详情请参见 LICENSE 文件。
 
-## 贡献
-
-欢迎提交 Issues 和 Pull Requests！
-
 ## 联系
 
 如有任何问题，请提交 GitHub Issues。
 
+## Contributors
+
+**<a href="https://github.com/yourusername/RVisualNarrative/graphs/contributors">**
+**<img src="https://contrib.rocks/image?repo=yourusername/RVisualNarrative"/>**
+**</a>**
+
 ---
 
 **RVisualNarrative** - 让对话编辑变得简单而高效！
-
 
