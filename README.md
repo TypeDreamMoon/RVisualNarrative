@@ -1,7 +1,7 @@
 # RVisualNarrative
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Srkmn/RVisualNarrative/blob/main/LICENSE)
 [![QQ群](https://img.shields.io/badge/QQ群-1039586349-800020?logo=tencentqq&style=flat-square)](https://qm.qq.com/q/ATfliiSGxG)
-[![GitHub release](https://img.shields.io/github/v/release/Srkmn/RVisualNarrative?color=800020&style=flat-square)](https://github.com/Srkmn/RVisualNarrative/releases)  
+[![GitHub release](https://img.shields.io/github/v/release/Srkmn/RVisualNarrative?color=228B22&style=flat-square)](https://github.com/Srkmn/RVisualNarrative/releases)  
 
 ## 简介
 
@@ -54,9 +54,9 @@ RVisualNarrative 是一款为虚幻引擎(Unreal Engine)开发的跨版本对话
 2. 重新生成项目文件
 3. 编译项目
 
-## 使用示例
+## 文档
 
-TODO
+- [开始上手](https://zhuanlan.zhihu.com/p/1888638258621163028)
 
 ## 社区
 
