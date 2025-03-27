@@ -1,0 +1,39 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "RVisualNarrative",
+	"Description": "Quickly edit visual narrative processes",
+	"Category": "Other",
+	"CreatedBy": "Ricardo",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "RVisualNarrative",
+			"Type": "Runtime",
+			"LoadingPhase": "PreLoadingScreen"
+		},
+		{
+			"Name": "RVisualNarrativeCore",
+			"Type": "Runtime",
+			"LoadingPhase": "PreEarlyLoadingScreen"
+		},
+		{
+			"Name": "RVisualNarrativeEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "CrossVersion",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
