@@ -166,61 +166,46 @@ const FPinConnectionResponse URVNDialogueGraphSchema::CanCreateConnection(
 		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, TEXT("Cannot connect to Entry node"));
 	}
 
-	if (bIsDialogueA)
+	if (A->Direction == EGPD_Output)
 	{
-		if (A->Direction == EGPD_Output)
+		if (A->HasAnyConnections())
 		{
-			if (A->HasAnyConnections())
-			{
-				bool bHasSelectConnection = false;
-				bool bHasDialogueConnection = false;
+			bool bHasSelectConnection = false;
+			bool bHasDialogueConnection = false;
 
-				for (const UEdGraphPin* LinkedPin : A->LinkedTo)
+			for (const UEdGraphPin* LinkedPin : A->LinkedTo)
+			{
+				if (const auto StateNode = Cast<URVNStateNode>(LinkedPin->GetOwningNode()))
 				{
-					if (const auto StateNode = Cast<URVNStateNode>(LinkedPin->GetOwningNode()))
+					if (StateNode->IsSelectNode() && !bHasSelectConnection)
 					{
-						if (StateNode->IsSelectNode() && !bHasSelectConnection)
-						{
-							bHasSelectConnection = true;
-						}
-						else if (StateNode->IsDialogueNode())
-						{
-							bHasDialogueConnection = true;
-						}
+						bHasSelectConnection = true;
+					}
+					else if (StateNode->IsDialogueNode())
+					{
+						bHasDialogueConnection = true;
 					}
 				}
-
-				if (bHasSelectConnection && bIsDialogueB)
-				{
-					return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW,
-					                              TEXT(
-						                              "Dialogue output already connected to Select, cannot connect to Dialogue"));
-				}
-				if (bHasDialogueConnection && bIsSelectB)
-				{
-					return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW,
-					                              TEXT(
-						                              "Dialogue output already connected to Dialogue, cannot connect to Select"));
-				}
 			}
 
-			if (B->Direction == EGPD_Input && (bIsDialogueB || bIsSelectB))
+			if (bHasSelectConnection && bIsDialogueB)
 			{
-				return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT("Valid Dialogue output connection"));
+				return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW,
+				                              TEXT(
+					                              "Next nodes must all be of the same type"));
+			}
+
+			if (bHasDialogueConnection && bIsSelectB)
+			{
+				return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW,
+				                              TEXT(
+					                              "Next nodes must all be of the same type"));
 			}
 		}
-	}
 
-	if (bIsSelectA)
-	{
-		if (bIsSelectB)
+		if (B->Direction == EGPD_Input && (bIsDialogueB || bIsSelectB))
 		{
-			return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, TEXT("con't connect to another select node"));
-		}
-
-		if (bIsDialogueB)
-		{
-			return FPinConnectionResponse(CONNECT_RESPONSE_MAKE,TEXT("Select can connect to Dialogue"));
+			return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT("Valid Dialogue output connection"));
 		}
 	}
 
