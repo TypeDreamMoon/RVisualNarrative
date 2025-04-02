@@ -1,13 +1,8 @@
 ﻿#include "RVNEditor.h"
-
 #include "EdGraphUtilities.h"
-#include "GraphEditorActions.h"
-#include "K2Node_Event.h"
 #include "RVNAssetBlueprint.h"
 #include "RVNComponent.h"
 #include "SBlueprintEditorToolbar.h"
-#include "SFixupSelfContextDlg.h"
-#include "SGraphNode.h"
 #include "SGraphPanel.h"
 #include "SNodePanel.h"
 #include "EditorApplicationMode/RVNEditorModes.h"
@@ -18,7 +13,6 @@
 #include "Graph/Node/RVNStateNode.h"
 #include "Graph/Slate/SRVNNodeList.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "Kismet2/CompilerResultsLog.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "Tab/RVNEditorTabFactories.h"
 #include "Toolbar/RVNEditorToolbar.h"
@@ -267,8 +261,6 @@ void FRVNEditor::DeleteSelectedNodesDG()
 			if (const auto StateNode = Cast<URVNStateNode>(GraphNode))
 			{
 				GetRVNComponent()->SetFlags(RF_Transactional);
-
-				GetRVNComponent()->Modify();
 
 				GetRVNDialogueGraph()->RemoveStateNode(StateNode->GetNodeId());
 

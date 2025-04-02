@@ -1,6 +1,7 @@
 ﻿#include "RVNComponent.h"
-
 #include "RVNDialogueManager.h"
+#include "Decorator/Condition/RVNCondition.h"
+#include "Decorator/Task/RVNTask.h"
 
 #define LOCTEXT_NAMESPACE "RVNComponent"
 
@@ -72,6 +73,11 @@ FRVNNodeData& URVNComponent::CreateNode(const FVector2d& InPosition)
 	return Nodes[NewIndex];
 }
 
+URVNDecorator* URVNComponent::CreateDecorator(const UClass* InDecoratorClass) const
+{
+	return NewObject<URVNDecorator>(GetPackage(), InDecoratorClass);
+}
+
 void URVNComponent::RemoveNode(int32 NodeId)
 {
 	int32 Index;
@@ -79,6 +85,8 @@ void URVNComponent::RemoveNode(int32 NodeId)
 	{
 		return;
 	}
+
+	Modify();
 
 	InvalidateNode(Index);
 
@@ -284,6 +292,8 @@ void URVNComponent::RequestNodeSort(TFunction<void(const TMap<int32, int32>&)> I
 
 void URVNComponent::CompactNodesData()
 {
+	Modify();
+
 	TArray<FRVNNodeData> CompactedNodes;
 
 	for (const auto& Node : Nodes)
@@ -309,6 +319,107 @@ void URVNComponent::CompactNodesData()
 	Nodes = CompactedNodes;
 
 	NodeIdToIndex = NewNodeIdToIndex;
+}
+
+void URVNComponent::AddCondition(int32 NodeId, URVNConditionBase* Condition)
+{
+	int32 Index;
+	if (!GetNodeIndex(NodeId, Index))
+	{
+		return;
+	}
+
+	Modify();
+
+	Nodes[Index].Conditions.AddUnique(Condition);
+}
+
+void URVNComponent::RemoveCondition(int32 NodeId, URVNConditionBase* Condition)
+{
+	int32 Index;
+	if (!GetNodeIndex(NodeId, Index))
+	{
+		return;
+	}
+
+	Modify();
+
+	Nodes[Index].Conditions.Remove(Condition);
+}
+
+void URVNComponent::AddTask(int32 NodeId, URVNTaskBase* Task)
+{
+	int32 Index;
+	if (!GetNodeIndex(NodeId, Index))
+	{
+		return;
+	}
+
+	Modify();
+
+	Nodes[Index].Tasks.AddUnique(Task);
+}
+
+void URVNComponent::RemoveTask(int32 NodeId, URVNTaskBase* Task)
+{
+	int32 Index;
+	if (!GetNodeIndex(NodeId, Index))
+	{
+		return;
+	}
+
+	Modify();
+
+	Nodes[Index].Tasks.Remove(Task);
+}
+
+void URVNComponent::InvalidateNode(int32 Index)
+{
+	if (!Nodes.IsValidIndex(Index))
+	{
+		return;
+	}
+
+	NodeIdToIndex.Remove(Nodes[Index].NodeId);
+
+	Nodes[Index].NodeId = INDEX_NONE;
+	Nodes[Index].bValid = false;
+	Nodes[Index].StateName.Empty();
+	Nodes[Index].StateContent.Empty();
+	Nodes[Index].NextNodesId.Empty();
+	Nodes[Index].Conditions.Empty();
+	Nodes[Index].Tasks.Empty();
+}
+
+void URVNComponent::SortNodesByPosition(TArray<int32>& NodeIds)
+{
+	NodeIds.Sort([this](const int32 A, const int32 B)
+	{
+		FRVNNodeData NodeA, NodeB;
+		if (!GetNodeData(A, NodeA) || !GetNodeData(B, NodeB))
+			return false;
+
+		return NodeA < NodeB;
+	});
+}
+
+bool URVNComponent::GetParentNodeIndex(int32 InNodeId, int32& OutIndex)
+{
+	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
+	{
+		if (!Nodes[Index].bValid)
+		{
+			continue;
+		}
+
+		if (Nodes[Index].NextNodesId.Contains(InNodeId))
+		{
+			OutIndex = Index;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void URVNComponent::DebugPrintNodeTree()
@@ -385,16 +496,16 @@ void URVNComponent::DebugPrintNodeTree()
 		FullOutput += TEXT("]\n");
 
 		FullOutput += FString::Printf(TEXT("%s    Tasks: [\n"), *Indent);
-		for (const FRVNClassInfo& Task : CurrentNode.Tasks)
+		for (const auto& Task : CurrentNode.Tasks)
 		{
-			FullOutput += FString::Printf(TEXT("%s        %s\n"), *Indent, *Task.ClassName);
+			FullOutput += FString::Printf(TEXT("%s        %s\n"), *Indent, *Task->GetName());
 		}
 		FullOutput += FString::Printf(TEXT("%s    ]\n"), *Indent);
 
 		FullOutput += FString::Printf(TEXT("%s    Conditions: [\n"), *Indent);
-		for (const FRVNClassInfo& Condition : CurrentNode.Conditions)
+		for (const auto& Condition : CurrentNode.Conditions)
 		{
-			FullOutput += FString::Printf(TEXT("%s        %s\n"), *Indent, *Condition.ClassName);
+			FullOutput += FString::Printf(TEXT("%s        %s\n"), *Indent, *Condition->GetName());
 		}
 		FullOutput += FString::Printf(TEXT("%s    ]\n"), *Indent);
 
@@ -410,106 +521,6 @@ void URVNComponent::DebugPrintNodeTree()
 	UE_LOG(LogTemp, Log, TEXT("RVN Node Tree:%s"), *FullOutput);
 }
 
-void URVNComponent::AddCondition(int32 NodeId, const FRVNClassInfo& Condition)
-{
-	int32 Index;
-	if (!GetNodeIndex(NodeId, Index))
-	{
-		return;
-	}
-
-	Modify();
-
-	Nodes[Index].Conditions.AddUnique(Condition);
-}
-
-void URVNComponent::RemoveCondition(int32 NodeId, const FRVNClassInfo& Condition)
-{
-	int32 Index;
-	if (!GetNodeIndex(NodeId, Index))
-	{
-		return;
-	}
-
-	Modify();
-
-	Nodes[Index].Conditions.Remove(Condition);
-}
-
-void URVNComponent::AddTask(int32 NodeId, const FRVNClassInfo& Task)
-{
-	int32 Index;
-	if (!GetNodeIndex(NodeId, Index))
-	{
-		return;
-	}
-
-	Modify();
-
-	Nodes[Index].Tasks.AddUnique(Task);
-}
-
-void URVNComponent::RemoveTask(int32 NodeId, const FRVNClassInfo& Task)
-{
-	int32 Index;
-	if (!GetNodeIndex(NodeId, Index))
-	{
-		return;
-	}
-
-	Modify();
-
-	Nodes[Index].Tasks.Remove(Task);
-}
-
-void URVNComponent::InvalidateNode(int32 Index)
-{
-	if (!Nodes.IsValidIndex(Index))
-	{
-		return;
-	}
-
-	NodeIdToIndex.Remove(Nodes[Index].NodeId);
-
-	Nodes[Index].NodeId = INDEX_NONE;
-	Nodes[Index].bValid = false;
-	Nodes[Index].StateName.Empty();
-	Nodes[Index].StateContent.Empty();
-	Nodes[Index].NextNodesId.Empty();
-	Nodes[Index].Conditions.Empty();
-	Nodes[Index].Tasks.Empty();
-}
-
-void URVNComponent::SortNodesByPosition(TArray<int32>& NodeIds)
-{
-	NodeIds.Sort([this](const int32 A, const int32 B)
-	{
-		FRVNNodeData NodeA, NodeB;
-		if (!GetNodeData(A, NodeA) || !GetNodeData(B, NodeB))
-			return false;
-
-		return NodeA < NodeB;
-	});
-}
-
-bool URVNComponent::GetParentNodeIndex(int32 InNodeId, int32& OutIndex)
-{
-	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
-	{
-		if (!Nodes[Index].bValid)
-		{
-			continue;
-		}
-
-		if (Nodes[Index].NextNodesId.Contains(InNodeId))
-		{
-			OutIndex = Index;
-			return true;
-		}
-	}
-
-	return false;
-}
 #endif
 
 #undef LOCTEXT_NAMESPACE

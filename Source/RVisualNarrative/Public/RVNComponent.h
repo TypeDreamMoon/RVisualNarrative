@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "RVNClassInfo.h"
 #include "RVNComponent.generated.h"
 
+class URVNDecorator;
+class URVNConditionBase;
 class URVNTaskBase;
-class URVNCondition;
 class URVNDialogueManager;
 
 USTRUCT(BlueprintType)
@@ -41,10 +41,10 @@ struct RVISUALNARRATIVE_API FRVNNodeData
 	FVector2D NodePosition;
 
 	UPROPERTY()
-	TArray<FRVNClassInfo> Tasks;
+	TArray<URVNConditionBase*> Conditions;
 
 	UPROPERTY()
-	TArray<FRVNClassInfo> Conditions;
+	TArray<URVNTaskBase*> Tasks;
 
 	FRVNNodeData()
 		: NodeId(INDEX_NONE)
@@ -121,6 +121,8 @@ private:
 public:
 	FRVNNodeData& CreateNode(const FVector2d& InPosition);
 
+	URVNDecorator* CreateDecorator(const UClass* InDecoratorClass) const;
+
 	void RemoveNode(int32 NodeId);
 
 	void ConnectNodes(int32 SourceNodeId, int32 TargetNodeId);
@@ -142,16 +144,16 @@ public:
 	void DebugPrintNodeTree();
 
 	UFUNCTION()
-	void AddCondition(int32 NodeId, const FRVNClassInfo& Condition);
+	void AddCondition(int32 NodeId, URVNConditionBase* Condition);
 
 	UFUNCTION()
-	void RemoveCondition(int32 NodeId, const FRVNClassInfo& Condition);
+	void RemoveCondition(int32 NodeId, URVNConditionBase* Condition);
 
 	UFUNCTION()
-	void AddTask(int32 NodeId, const FRVNClassInfo& Task);
+	void AddTask(int32 NodeId, URVNTaskBase* Task);
 
 	UFUNCTION()
-	void RemoveTask(int32 NodeId, const FRVNClassInfo& Task);
+	void RemoveTask(int32 NodeId, URVNTaskBase* Task);
 
 private:
 	void InvalidateNode(int32 Index);

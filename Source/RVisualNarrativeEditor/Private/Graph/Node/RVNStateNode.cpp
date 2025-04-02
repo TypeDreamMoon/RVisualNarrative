@@ -1,10 +1,14 @@
 ﻿#include "Graph/Node/RVNStateNode.h"
-
-#include "RVNComponent.h"
-#include "Graph/RVNDialogueGraph.h"
 #include "EdGraph/EdGraphPin.h"
-#include "Graph/RVNDialogueGraph.h"
 #include "Styling/SlateTypes.h"
+#include "RVNComponent.h"
+#include "Decorator/Condition/RVNCondition.h"
+#include "Decorator/Task/RVNTask.h"
+#include "Graph/RVNDialogueGraph.h"
+
+URVNStateNode::URVNStateNode()
+{
+}
 
 void URVNStateNode::InitStateNode(FRVNNodeData& InData, ENodeType InType, TObjectPtr<URVNDialogueGraph> InGraph)
 {
@@ -44,19 +48,6 @@ TSharedPtr<SGraphNode> URVNStateNode::GetStateWidget() const
 	return RVNDialogueGraph->GetNodeWidgetFromGuid(NodeGuid);
 }
 
-FRVNNodeData URVNStateNode::GetPastedData() const
-{
-	FRVNNodeData Data;
-	Data.StateName = StateName;
-	Data.StateContent = StateContent;
-	//Data.bIsPlayer = bIsPlayer;
-	Data.Conditions = ConditionNode;
-	Data.Tasks = TaskNode;
-	//Data.bIsSelector = IsSelectNode();
-
-	return Data;
-}
-
 void URVNStateNode::SetDialogText(const FString& NewText)
 {
 	StateContent = NewText;
@@ -64,9 +55,61 @@ void URVNStateNode::SetDialogText(const FString& NewText)
 	OnDialogueContentChanged();
 }
 
-void URVNStateNode::AddCondition(const FRVNClassInfo& InNode)
+void URVNStateNode::PasteDecorator(const TArray<URVNDecorator*>& InDecorator)
 {
-	if (ConditionNode.Contains(InNode))
+	for (const auto Decorator : InDecorator)
+	{
+		PasteDecorator(Decorator);
+	}
+}
+
+void URVNStateNode::PasteDecorator(const URVNDecorator* InDecorator)
+{
+	AddDecorator(RVNDialogueGraph->CreateDecorator(InDecorator->GetClass()));
+}
+
+void URVNStateNode::OnSelectedDecorator(URVNDecorator* InDecorator)
+{
+	if (InDecorator == nullptr)
+	{
+		return;
+	}
+
+	if (GetDialogueGraph() == nullptr)
+	{
+		return;
+	}
+
+	GetDialogueGraph()->SetSelectedDecorator(InDecorator);
+}
+
+void URVNStateNode::AddDecorator(URVNDecorator* InDecorator)
+{
+	if (InDecorator == nullptr)
+	{
+		return;
+	}
+
+	Modify();
+
+	if (auto Condition = Cast<URVNConditionBase>(InDecorator))
+	{
+		AddCondition(Condition);
+	}
+	else if (auto Task = Cast<URVNTaskBase>(InDecorator))
+	{
+		AddTask(Task);
+	}
+}
+
+void URVNStateNode::AddCondition(URVNConditionBase* InCondition)
+{
+	if (InCondition == nullptr)
+	{
+		return;
+	}
+
+	if (ConditionNodes.Contains(InCondition))
 	{
 		return;
 	}
@@ -76,69 +119,103 @@ void URVNStateNode::AddCondition(const FRVNClassInfo& InNode)
 		return;
 	}
 
-	if (InNode.ObjectPath.IsEmpty())
+	if (GetDialogueGraph() == nullptr)
 	{
 		return;
 	}
 
-	ConditionNode.Add(InNode);
+	ConditionNodes.Add(InCondition);
 
-	GetDialogueGraph()->AddCondition(NodeId, InNode);
+	GetDialogueGraph()->AddCondition(NodeId, InCondition);
 
-	OnAddCondition.ExecuteIfBound(InNode);
+	OnAddConditionCallback.ExecuteIfBound(InCondition);
 }
 
-void URVNStateNode::RemoveCondition(const FRVNClassInfo& InNode)
+void URVNStateNode::AddTask(URVNTaskBase* InTask)
 {
-	if (!ConditionNode.Remove(InNode))
+	if (InTask == nullptr)
 	{
 		return;
 	}
 
-	if (InNode.ObjectPath.IsEmpty())
+	if (TaskNodes.Contains(InTask))
 	{
 		return;
 	}
 
-	GetDialogueGraph()->RemoveCondition(NodeId, InNode);
+	if (GetDialogueGraph() == nullptr)
+	{
+		return;
+	}
 
-	OnRemoveCondition.ExecuteIfBound(InNode);
+	TaskNodes.Add(InTask);
+
+	GetDialogueGraph()->AddTask(NodeId, InTask);
+
+	OnAddTaskCallback.ExecuteIfBound(InTask);
 }
 
-void URVNStateNode::AddTask(const FRVNClassInfo& InNode)
+void URVNStateNode::RemoveDecorator(URVNDecorator* InDecorator)
 {
-	if (TaskNode.Contains(InNode))
+	if (InDecorator == nullptr)
 	{
 		return;
 	}
 
-	if (InNode.ObjectPath.IsEmpty())
+	Modify();
+
+	if (auto Condition = Cast<URVNConditionBase>(InDecorator))
 	{
-		return;
+		RemoveCondition(Condition);
 	}
-
-	TaskNode.Add(InNode);
-
-	GetDialogueGraph()->AddTask(NodeId, InNode);
-
-	OnAddTask.ExecuteIfBound(InNode);
+	else if (auto Task = Cast<URVNTaskBase>(InDecorator))
+	{
+		RemoveTask(Task);
+	}
 }
 
-void URVNStateNode::RemoveTask(const FRVNClassInfo& InNode)
+void URVNStateNode::RemoveCondition(URVNConditionBase* InCondition)
 {
-	if (!TaskNode.Remove(InNode))
+	if (InCondition == nullptr)
 	{
 		return;
 	}
 
-	if (InNode.ObjectPath.IsEmpty())
+	if (!ConditionNodes.Remove(InCondition))
 	{
 		return;
 	}
 
-	GetDialogueGraph()->RemoveTask(NodeId, InNode);
+	if (GetDialogueGraph() == nullptr)
+	{
+		return;
+	}
 
-	OnRemoveTask.ExecuteIfBound(InNode);
+	if (GetDialogueGraph() == nullptr)
+	{
+		return;
+	}
+
+	GetDialogueGraph()->RemoveCondition(NodeId, InCondition);
+
+	OnRemoveConditionCallback.ExecuteIfBound(InCondition);
+}
+
+void URVNStateNode::RemoveTask(URVNTaskBase* InTask)
+{
+	if (InTask == nullptr)
+	{
+		return;
+	}
+
+	if (!TaskNodes.Remove(InTask))
+	{
+		return;
+	}
+
+	GetDialogueGraph()->RemoveTask(NodeId, InTask);
+
+	OnRemoveTaskCallback.ExecuteIfBound(InTask);
 }
 
 int32 URVNStateNode::GetNodeId() const
@@ -152,7 +229,7 @@ void URVNStateNode::SetNodeId(const int32 NewId)
 	{
 		NodeId = NewId;
 
-		OnNodeIdChanged.ExecuteIfBound();
+		OnNodeIdChangedCallback.ExecuteIfBound();
 	}
 }
 
@@ -203,6 +280,11 @@ void URVNStateNode::PinConnectionListChanged(UEdGraphPin* Pin)
 		}
 	}
 
+	if (GetDialogueGraph() == nullptr)
+	{
+		return;
+	}
+
 	GetDialogueGraph()->OnPinConnectionChanged(GetNodeId(), NextNodesId);
 }
 
@@ -238,23 +320,44 @@ void URVNStateNode::OnPropertyEdited(const FPropertyChangedEvent& InPropertyChan
 
 void URVNStateNode::OnSpeakerNameChanged() const
 {
+	if (GetDialogueGraphConst() == nullptr)
+	{
+		return;
+	}
+
 	GetDialogueGraphConst()->OnSpeakerNameChanged(GetNodeId(), StateName);
 }
 
 void URVNStateNode::OnDialogueContentChanged() const
 {
+	if (GetDialogueGraphConst() == nullptr)
+	{
+		return;
+	}
+
 	GetDialogueGraphConst()->OnDialogueContentChanged(GetNodeId(), StateContent);
 }
 
 void URVNStateNode::OnIsPlayerChanged() const
 {
+	if (GetDialogueGraphConst() == nullptr)
+	{
+		return;
+	}
+
 	GetDialogueGraphConst()->OnIsPlayerChanged(GetNodeId(), bIsPlayer);
 }
 
 void URVNStateNode::OnPositionChanged()
 {
+	if (GetDialogueGraph() == nullptr)
+	{
+		return;
+	}
+
 	GetDialogueGraph()->OnPositionChanged(GetNodeId(), FVector2d(NodePosX, NodePosY));
 }
+
 
 const URVNDialogueGraph* URVNStateNode::GetDialogueGraphConst() const
 {

@@ -11,4 +11,8 @@ class RVISUALNARRATIVE_API URVNCondition_Default : public URVNCondition
 
 public:
 	virtual bool CheckCondition_Implementation(URVNComponent* OwnerComponent) override;
+
+public:
+	UPROPERTY(EditAnywhere)
+	bool bIsPass = true;
 };

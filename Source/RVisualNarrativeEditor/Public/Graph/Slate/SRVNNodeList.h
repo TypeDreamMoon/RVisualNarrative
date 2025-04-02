@@ -1,9 +1,10 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "GraphEditorDragDropAction.h"
 #include "Widgets/SCompoundWidget.h"
+#include "GraphEditorDragDropAction.h"
 
+class URVNDecorator;
 class URVNStateNode;
 class URVNDialogueGraph;
 
@@ -26,7 +27,7 @@ class FRVNNodeDragDropOp : public FGraphEditorDragDropAction
 public:
 	DRAG_DROP_OPERATOR_TYPE(FRVNNodeDragDropOp, FGraphEditorDragDropAction)
 
-	TSharedPtr<FRVNClassInfo> DraggedNode;
+	UClass* DraggedNodeClass;
 
 	TSharedPtr<SBorder> DecoratorWidget;
 
@@ -34,7 +35,7 @@ public:
 
 	TWeakObjectPtr<URVNDialogueGraph> DialogueGraph;
 
-	static TSharedRef<FRVNNodeDragDropOp> New(TSharedPtr<FRVNClassInfo> InNode, URVNDialogueGraph* InGraph);
+	static TSharedRef<FRVNNodeDragDropOp> New(UClass* InNodeClass, URVNDialogueGraph* InGraph);
 
 	virtual void OnDragged(const FDragDropEvent& DragDropEvent) override;
 
@@ -57,6 +58,21 @@ public:
 	void Construct(const FArguments& InArgs);
 
 private:
+	void OnSearchTextChanged(const FText& NewText);
+
+	void CollectNodes();
+
+	void RefreshList();
+
+	TSharedRef<SWidget> CreateCategoryWidget(TSharedPtr<FRVNNodeCategory> Category);
+	TSharedRef<SWidget> CreateNodesForCategory(TSharedPtr<FRVNNodeCategory> Category);
+	TSharedRef<SWidget> CreateNodeWidget(TSharedPtr<FRVNClassInfo> NodeInfo);
+
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	TSharedPtr<FRVNClassInfo> GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+private:
 	TWeakObjectPtr<URVNDialogueGraph> DialogueGraph;
 
 	TMap<FString, TSharedPtr<FRVNNodeCategory>> NodeCategories;
@@ -66,17 +82,4 @@ private:
 
 	TSharedPtr<SSearchBox> SearchBox;
 	TSharedPtr<SVerticalBox> CategoryList;
-
-	void OnSearchTextChanged(const FText& NewText);
-
-	void CollectNodes();
-
-	void RefreshList();
-	TSharedRef<SWidget> CreateCategoryWidget(TSharedPtr<FRVNNodeCategory> Category);
-	TSharedRef<SWidget> CreateNodesForCategory(TSharedPtr<FRVNNodeCategory> Category);
-	TSharedRef<SWidget> CreateNodeWidget(TSharedPtr<FRVNClassInfo> NodeInfo);
-
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	TSharedPtr<FRVNClassInfo> GetNodeUnderMouse(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 };

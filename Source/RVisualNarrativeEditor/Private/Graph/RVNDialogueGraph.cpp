@@ -1,7 +1,7 @@
 ﻿#include "Graph/RVNDialogueGraph.h"
+#include "SGraphPanel.h"
 #include "RVNComponent.h"
 #include "RVNEditor.h"
-#include "SGraphPanel.h"
 #include "Graph/Node/Slate/SRVNStateNode.h"
 
 URVNDialogueGraph::URVNDialogueGraph()
@@ -26,6 +26,13 @@ URVNStateNode* URVNDialogueGraph::CreateStateNode(ENodeType InType, const FVecto
 	IdToNodeMap.Add(NewNode->GetNodeId(), NewNode);
 
 	return NewNode;
+}
+
+URVNDecorator* URVNDialogueGraph::CreateDecorator(const UClass* InDecoratorClass) const
+{
+	check(RVNCompPtr)
+
+	return RVNCompPtr->CreateDecorator(InDecoratorClass);
 }
 
 void URVNDialogueGraph::ProcessPasteNodes(const TArray<URVNStateNode*>& InStateNodes)
@@ -61,28 +68,49 @@ void URVNDialogueGraph::ProcessPasteNodes(const TArray<URVNStateNode*>& InStateN
 			return INDEX_NONE;
 		}
 
+		TArray<URVNDecorator*> DecoratorsTemp;
+		for (const auto Condition : CurNode->ConditionNodes)
+		{
+			DecoratorsTemp.Add(Cast<URVNDecorator>(Condition));
+		}
+
+		for (const auto Task : CurNode->TaskNodes)
+		{
+			DecoratorsTemp.Add(Cast<URVNDecorator>(Task));
+		}
+
+		CurNode->ConditionNodes.Empty();
+		CurNode->TaskNodes.Empty();
+
 		auto& NewNodeData = RVNCompPtr->CreateNode(FVector2D(CurNode->NodePosX, CurNode->NodePosY));
 
-		auto PastedData = CurNode->GetPastedData();
-
-		NewNodeData += PastedData;
-
+		NewNodeData.StateName = CurNode->StateName;
+		NewNodeData.StateContent = CurNode->StateContent;
 		NewNodeData.bIsPlayer = CurNode->bIsPlayer;
 		NewNodeData.bIsSelector = CurNode->IsSelectNode();
 
 		CurNode->SetNodeId(NewNodeData.NodeId);
+		CurNode->PasteDecorator(DecoratorsTemp);
 
 		IdToNodeMap.Add(NewNodeData.NodeId, CurNode);
 
 		const auto Widget = GetNodeWidgetFromGuid(CurNode->NodeGuid);
 
-		check(Widget.IsValid())
+		if (!Widget.IsValid())
+		{
+			return INDEX_NONE;
+		}
 
 		const auto StateWidget = StaticCastSharedPtr<SRVNStateWidget>(Widget);
 
-		check(StateWidget)
+		if (!StateWidget.IsValid())
+		{
+			return INDEX_NONE;
+		}
 
-		StateWidget->Refresh(CurNode);
+		StateWidget->UpdateDelegate(CurNode);
+
+		StateWidget->UpdateGraphNode();
 
 		TArray<URVNStateNode*> NextStateNodes;
 
@@ -105,7 +133,9 @@ void URVNDialogueGraph::ProcessPasteNodes(const TArray<URVNStateNode*>& InStateN
 		NextStateNodes.Sort([](const URVNStateNode& A, const URVNStateNode& B) -> bool
 		{
 			if (!IsValid(&A) || !IsValid(&B))
+			{
 				return false;
+			}
 
 			const FVector2D PosA(A.NodePosX, A.NodePosY);
 			const FVector2D PosB(B.NodePosX, B.NodePosY);
@@ -118,7 +148,10 @@ void URVNDialogueGraph::ProcessPasteNodes(const TArray<URVNStateNode*>& InStateN
 
 		for (auto ChildNode : NextStateNodes)
 		{
-			NextStateNodeIds.Add(Self(Self, ChildNode));
+			if (const int32 NextStateNodeId = Self(Self, ChildNode))
+			{
+				NextStateNodeIds.Add(NextStateNodeId);
+			}
 		}
 
 		OnPinConnectionChanged(NewNodeData.NodeId, NextStateNodeIds);
@@ -256,27 +289,44 @@ TSharedPtr<SGraphNode> URVNDialogueGraph::GetNodeWidgetFromGuid(const FGuid InGu
 		RVNEditorPtr.Pin()->GraphEditor->GetGraphPanel()->GetNodeWidgetFromGuid(InGuid));
 }
 
+void URVNDialogueGraph::SetSelectedDecorator(URVNDecorator* InDecorator)
+{
+	if (InDecorator == nullptr)
+	{
+		return;
+	}
+
+	if (!RVNEditorPtr.IsValid())
+	{
+		return;
+	}
+
+	const TSet Decorators = {Cast<UObject>(InDecorator)};
+
+	RVNEditorPtr.Pin()->OnSelectedNodesChanged(Decorators);
+}
+
 void URVNDialogueGraph::RemoveStateNode(int32 InNodeId) const
 {
 	RVNCompPtr->RemoveNode(InNodeId);
 }
 
-void URVNDialogueGraph::AddCondition(int32 NodeId, const FRVNClassInfo& Condition) const
+void URVNDialogueGraph::AddCondition(int32 NodeId, URVNConditionBase* Condition) const
 {
 	RVNCompPtr->AddCondition(NodeId, Condition);
 }
 
-void URVNDialogueGraph::RemoveCondition(int32 NodeId, const FRVNClassInfo& Condition) const
+void URVNDialogueGraph::RemoveCondition(int32 NodeId, URVNConditionBase* Condition) const
 {
 	RVNCompPtr->RemoveCondition(NodeId, Condition);
 }
 
-void URVNDialogueGraph::AddTask(int32 NodeId, const FRVNClassInfo& Task) const
+void URVNDialogueGraph::AddTask(int32 NodeId, URVNTaskBase* Task) const
 {
 	RVNCompPtr->AddTask(NodeId, Task);
 }
 
-void URVNDialogueGraph::RemoveTask(int32 NodeId, const FRVNClassInfo& Task) const
+void URVNDialogueGraph::RemoveTask(int32 NodeId, URVNTaskBase* Task) const
 {
 	RVNCompPtr->RemoveTask(NodeId, Task);
 }

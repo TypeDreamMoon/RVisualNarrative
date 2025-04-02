@@ -4,5 +4,5 @@ bool URVNCondition_Default::CheckCondition_Implementation(URVNComponent* OwnerCo
 {
 	UE_LOG(LogTemp, Display, TEXT("URVNCondition_Default::CheckCondition()"));
 
-	return 114514 > 0;
+	return bIsPass;
 }
