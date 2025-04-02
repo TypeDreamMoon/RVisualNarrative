@@ -1,10 +1,11 @@
 ﻿#include "Graph/Node/Slate/SRVNStateNode.h"
-
 #include "SGraphPin.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Graph/Node/RVNStateNode.h"
 #include "Graph/Node/Slate/SRVNStatePin.h"
 #include "Graph/Node/Slate/InternalWidget/SRVNStateInternal_Decorator.h"
-#include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Decorator/Condition/RVNCondition.h"
+#include "Decorator/Task/RVNTask.h"
 #include "UEVersion.h"
 
 class SRVNNodeIndex : public SCompoundWidget
@@ -69,7 +70,7 @@ private:
 
 void SRVNStateWidget::Construct(const FArguments& InArgs, URVNStateNode* InNode)
 {
-	Refresh(InNode);
+	UpdateDelegate(InNode);
 
 	SetCursor(EMouseCursor::CardinalCross);
 
@@ -80,16 +81,16 @@ void SRVNStateWidget::Construct(const FArguments& InArgs, URVNStateNode* InNode)
 	UpdateGraphNode();
 }
 
-void SRVNStateWidget::Refresh(URVNStateNode* InNode)
+void SRVNStateWidget::UpdateDelegate(URVNStateNode* InNode)
 {
 	StateNode = InNode;
 	GraphNode = InNode;
 
-	StateNode->OnNodeIdChanged.BindRaw(this, &SRVNStateWidget::HandleNodeIdChanged);
-	StateNode->OnAddCondition.BindRaw(this, &SRVNStateWidget::HandleAddCondition);
-	StateNode->OnRemoveCondition.BindRaw(this, &SRVNStateWidget::HandleRemoveCondition);
-	StateNode->OnAddTask.BindRaw(this, &SRVNStateWidget::HandleAddTask);
-	StateNode->OnRemoveTask.BindRaw(this, &SRVNStateWidget::HandleRemoveTask);
+	StateNode->OnNodeIdChangedCallback.BindRaw(this, &SRVNStateWidget::HandleNodeIdChanged);
+	StateNode->OnAddConditionCallback.BindRaw(this, &SRVNStateWidget::HandleAddCondition);
+	StateNode->OnRemoveConditionCallback.BindRaw(this, &SRVNStateWidget::HandleRemoveCondition);
+	StateNode->OnAddTaskCallback.BindRaw(this, &SRVNStateWidget::HandleAddTask);
+	StateNode->OnRemoveTaskCallback.BindRaw(this, &SRVNStateWidget::HandleRemoveTask);
 }
 
 void SRVNStateWidget::UpdateGraphNode()
@@ -284,6 +285,11 @@ TSharedRef<SWidget> SRVNStateWidget::CreateNodeContent()
 
 		for (const auto& Condition : StateNode->GetConditionNodes())
 		{
+			if (Condition == nullptr)
+			{
+				continue;
+			}
+
 			HandleAddCondition(Condition);
 		}
 	}
@@ -300,6 +306,11 @@ TSharedRef<SWidget> SRVNStateWidget::CreateNodeContent()
 
 	for (const auto& Task : StateNode->GetTaskNodes())
 	{
+		if (Task == nullptr)
+		{
+			continue;
+		}
+
 		HandleAddTask(Task);
 	}
 
@@ -589,7 +600,7 @@ void SRVNStateWidget::HandleNodeIdChanged()
 	NodeIndexOverlay->NodeIdText->SetText(TAttribute(FText::AsNumber(StateNode->GetNodeId())));
 }
 
-void SRVNStateWidget::HandleAddCondition(FRVNClassInfo ConditionInfo)
+void SRVNStateWidget::HandleAddCondition(URVNConditionBase* ConditionInfo)
 {
 	if (!NodeSlot1Box.IsValid())
 		return;
@@ -598,7 +609,8 @@ void SRVNStateWidget::HandleAddCondition(FRVNClassInfo ConditionInfo)
 
 	const auto ConditionWidget = StaticCastSharedRef<SRVNStateInternal_Decorator>(NewItemWidget);
 
-	ConditionWidget->OnDeleteRequested.BindUObject(StateNode.Get(), &URVNStateNode::RemoveCondition);
+	ConditionWidget->OnSelectedDecorator.BindUObject(StateNode.Get(), &URVNStateNode::OnSelectedDecorator);
+	ConditionWidget->OnDeleteRequested.BindUObject(StateNode.Get(), &URVNStateNode::RemoveDecorator);
 
 	ConditionSlotItems.Add(ConditionInfo, NewItemWidget);
 
@@ -612,7 +624,7 @@ void SRVNStateWidget::HandleAddCondition(FRVNClassInfo ConditionInfo)
 	OnConditionSlotExpandedChanged(true);
 }
 
-void SRVNStateWidget::HandleRemoveCondition(FRVNClassInfo ConditionInfo)
+void SRVNStateWidget::HandleRemoveCondition(URVNConditionBase* ConditionInfo)
 {
 	if (!NodeSlot1Box.IsValid())
 		return;
@@ -620,7 +632,7 @@ void SRVNStateWidget::HandleRemoveCondition(FRVNClassInfo ConditionInfo)
 	NodeSlot1Box->RemoveSlot(ConditionSlotItems[ConditionInfo].ToSharedRef());
 }
 
-void SRVNStateWidget::HandleAddTask(FRVNClassInfo TaskInfo)
+void SRVNStateWidget::HandleAddTask(URVNTaskBase* TaskInfo)
 {
 	if (!NodeSlot2Box.IsValid())
 		return;
@@ -629,7 +641,8 @@ void SRVNStateWidget::HandleAddTask(FRVNClassInfo TaskInfo)
 
 	const auto TaskWidget = StaticCastSharedRef<SRVNStateInternal_Decorator>(NewItemWidget);
 
-	TaskWidget->OnDeleteRequested.BindUObject(StateNode.Get(), &URVNStateNode::RemoveTask);
+	TaskWidget->OnSelectedDecorator.BindUObject(StateNode.Get(), &URVNStateNode::OnSelectedDecorator);
+	TaskWidget->OnDeleteRequested.BindUObject(StateNode.Get(), &URVNStateNode::RemoveDecorator);
 
 	TaskSlotItems.Add(TaskInfo, NewItemWidget);
 
@@ -643,7 +656,7 @@ void SRVNStateWidget::HandleAddTask(FRVNClassInfo TaskInfo)
 	OnTaskSlotExpandedChanged(true);
 }
 
-void SRVNStateWidget::HandleRemoveTask(FRVNClassInfo TaskInfo)
+void SRVNStateWidget::HandleRemoveTask(URVNTaskBase* TaskInfo)
 {
 	if (!NodeSlot2Box.IsValid())
 		return;
@@ -651,9 +664,9 @@ void SRVNStateWidget::HandleRemoveTask(FRVNClassInfo TaskInfo)
 	NodeSlot2Box->RemoveSlot(TaskSlotItems[TaskInfo].ToSharedRef());
 }
 
-TSharedRef<SWidget> SRVNStateWidget::CreateSlotItemWidget(const FRVNClassInfo& ItemInfo)
+TSharedRef<SWidget> SRVNStateWidget::CreateSlotItemWidget(URVNDecorator* InItem)
 {
 	return SNew(SRVNStateInternal_Decorator)
-		.DecoratorInfo(ItemInfo)
+		.DecoratorPtr(InItem)
 		.OuterNode(SharedThis(this));
 }

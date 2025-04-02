@@ -1,10 +1,9 @@
 ﻿#include "Graph/Node/Slate/InternalWidget/SRVNStateInternal_Decorator.h"
-
-#include "Decorator/Condition/RVNCondition.h"
-#include "Decorator/Task/RVNTask.h"
 #include "Graph/RVNDialogueGraph.h"
 #include "Graph/Node/RVNStateNode.h"
 #include "Graph/Node/Slate/SRVNStateNode.h"
+
+#define LOCTEXT_NAMESPACE "RVNStateInternal_Decorator"
 
 class FRVNDecoratorDragDropOp : public FDragDropOperation
 {
@@ -110,25 +109,39 @@ public:
 
 						if (UnderStateNodeGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition()))
 						{
-							const auto OverlayDecoratorInfo = SourceDecorator.Pin()->GetDecoratorInfo();
+							const auto OverlayDecorator = SourceDecorator.Pin()->GetDecoratorPtr();
 
-							if (SourceDecorator.Pin()->GetDecoratorInfo().GetClass()->IsChildOf(
-								URVNTaskBase::StaticClass()))
+							const FScopedTransaction Transaction(LOCTEXT(
+								"RVNStateInternal_Decorator_Transaction",
+								"Move the decorator between two state nodes"));
+
+							if (StateNode->GetStateNode() == nullptr)
 							{
-								UnderStateNode->AddTask(OverlayDecoratorInfo);
+								return;
 							}
-							else if (SourceDecorator.Pin()->GetDecoratorInfo().GetClass()->IsChildOf(
-								URVNConditionBase::StaticClass()))
+
+							if (StateNode->GetStateNode()->GetDialogueGraphConst() == nullptr)
 							{
-								UnderStateNode->AddCondition(OverlayDecoratorInfo);
+								return;
 							}
+
+							const auto RVNComp = StateNode->GetStateNode()->GetDialogueGraphConst()->RVNCompPtr;
+
+							if (RVNComp == nullptr)
+							{
+								return;
+							}
+
+							RVNComp->SetFlags(RF_Transactional);
+
+							UnderStateNode->AddDecorator(OverlayDecorator);
+
+							StateNode->GetStateNode()->RemoveDecorator(OverlayDecorator);
 
 							break;
 						}
 					}
 				}
-
-				DecoratorWidget->RequestDelete();
 			}
 
 			DraggedVisualWidget->SetVisibility(EVisibility::Collapsed);
@@ -152,8 +165,9 @@ const FLinearColor SRVNStateInternal_Decorator::ColorDragging(0.3f, 0.3f, 0.4f, 
 
 void SRVNStateInternal_Decorator::Construct(const FArguments& InArgs)
 {
-	DecoratorInfo = InArgs._DecoratorInfo;
+	DecoratorPtr = InArgs._DecoratorPtr;
 	OuterNode = InArgs._OuterNode;
+	OnSelectedDecorator = InArgs._OnSelectedDecorator;
 	OnDeleteRequested = InArgs._OnDeleteRequested;
 
 	ChildSlot
@@ -170,7 +184,7 @@ void SRVNStateInternal_Decorator::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(FText::FromString(DecoratorInfo.ClassName))
+				.Text(FText::FromString(DecoratorPtr->GetClass()->GetDisplayNameText().ToString()))
 			]
 		]
 	];
@@ -209,7 +223,7 @@ FReply SRVNStateInternal_Decorator::OnDragDetected(
 
 	DragDropOp->SourceDecorator = SharedThis(this);
 
-	DragDropOp->CreateDraggedWidget(DecoratorInfo.ClassName);
+	DragDropOp->CreateDraggedWidget(DecoratorPtr->GetName());
 
 	MainBorder->SetBorderBackgroundColor(ColorDragging);
 
@@ -246,7 +260,7 @@ void SRVNStateInternal_Decorator::OnFocusLost(const FFocusEvent& InFocusEvent)
 
 void SRVNStateInternal_Decorator::RequestDelete() const
 {
-	OnDeleteRequested.ExecuteIfBound(DecoratorInfo);
+	OnDeleteRequested.ExecuteIfBound(DecoratorPtr);
 }
 
 void SRVNStateInternal_Decorator::SetIsSelected(bool bSelected)
@@ -256,9 +270,13 @@ void SRVNStateInternal_Decorator::SetIsSelected(bool bSelected)
 	if (bIsSelected)
 	{
 		MainBorder->SetBorderBackgroundColor(ColorSelected);
+
+		OnSelectedDecorator.ExecuteIfBound(DecoratorPtr);
 	}
 	else
 	{
 		MainBorder->SetBorderBackgroundColor(ColorNormal);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

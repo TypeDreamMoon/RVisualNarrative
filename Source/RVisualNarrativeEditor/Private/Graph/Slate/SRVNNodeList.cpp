@@ -1,22 +1,21 @@
 ﻿#include "Graph/Slate/SRVNNodeList.h"
-
-#include "Decorator/Condition/RVNCondition.h"
-#include "Decorator/Task/RVNTask.h"
-#include "RVisualNarrativeEditor.h"
-#include "ClassCollector/RVNClassCollector.h"
-#include "Graph/RVNDialogueGraph.h"
-#include "Graph/Node/RVNStateNode.h"
-#include "Graph/Node/Slate/SRVNStateNode.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Layout/SExpandableArea.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Decorator/RVNDecorator.h"
+#include "Decorator/Condition/RVNCondition.h"
+#include "Decorator/Task/RVNTask.h"
+#include "RVisualNarrativeEditor.h"
+#include "Graph/RVNDialogueGraph.h"
+#include "Graph/Node/RVNStateNode.h"
+#include "Graph/Node/Slate/SRVNStateNode.h"
 
 #define LOCTEXT_NAMESPACE "SRVNDialogueNodeList"
 
-TSharedRef<FRVNNodeDragDropOp> FRVNNodeDragDropOp::New(TSharedPtr<FRVNClassInfo> InNode, URVNDialogueGraph* InGraph)
+TSharedRef<FRVNNodeDragDropOp> FRVNNodeDragDropOp::New(UClass* InNodeClass, URVNDialogueGraph* InGraph)
 {
 	TSharedRef<FRVNNodeDragDropOp> Operation = MakeShared<FRVNNodeDragDropOp>();
-	Operation->DraggedNode = InNode;
+	Operation->DraggedNodeClass = InNodeClass;
 	Operation->DialogueGraph = InGraph;
 
 	Operation->DecoratorWidget =
@@ -33,7 +32,7 @@ TSharedRef<FRVNNodeDragDropOp> FRVNNodeDragDropOp::New(TSharedPtr<FRVNClassInfo>
 			[
 				SNew(SImage)
 				.Image(FAppStyle::Get().GetBrush(
-					*Cast<URVNDecorator>(InNode->GetClass()->ClassDefaultObject)->GetNodeIconName()))
+					*Cast<URVNDecorator>(InNodeClass->ClassDefaultObject)->GetNodeIconName()))
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -41,7 +40,7 @@ TSharedRef<FRVNNodeDragDropOp> FRVNNodeDragDropOp::New(TSharedPtr<FRVNClassInfo>
 			.Padding(6, 0, 4, 0)
 			[
 				SNew(STextBlock)
-				.Text(FText::FromString(InNode->ClassName))
+				.Text(FText::FromString(InNodeClass->GetDisplayNameText().ToString()))
 			]
 		];
 
@@ -78,7 +77,7 @@ void FRVNNodeDragDropOp::OnDragged(const FDragDropEvent& DragDropEvent)
 			}
 		}
 
-		check(DraggedNode.IsValid() && DialogueGraph.IsValid())
+		check(DraggedNodeClass && DialogueGraph.IsValid())
 
 		DecoratorWidget->SetVisibility(EVisibility::Visible);
 	}
@@ -103,15 +102,17 @@ void FRVNNodeDragDropOp::OnDrop(bool bDropWasHandled, const FPointerEvent& Mouse
 		}
 	}
 
-	if (OverlappingNode.IsValid())
+	const auto NewDecorator = DialogueGraph->CreateDecorator(DraggedNodeClass);
+
+	if (OverlappingNode.IsValid() && NewDecorator)
 	{
-		if (DraggedNode->GetClass()->IsChildOf(URVNTaskBase::StaticClass()))
+		if (const auto ConditionNode = Cast<URVNConditionBase>(NewDecorator))
 		{
-			OverlappingNode->AddTask(*DraggedNode);
+			OverlappingNode->AddCondition(ConditionNode);
 		}
-		else if (DraggedNode->GetClass()->IsChildOf(URVNConditionBase::StaticClass()))
+		else if (const auto TaskNode = Cast<URVNTaskBase>(NewDecorator))
 		{
-			OverlappingNode->AddCondition(*DraggedNode);
+			OverlappingNode->AddTask(TaskNode);
 		}
 	}
 
@@ -135,9 +136,9 @@ void SRVNNodeList::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SBorder)
-		             .BorderImage(FAppStyle::Get().GetBrush("ToolPanel.DarkGroupBorder"))
-		             .BorderBackgroundColor(DarkBackground) 
-		             .Padding(FMargin(2))
+		.BorderImage(FAppStyle::Get().GetBrush("ToolPanel.DarkGroupBorder"))
+		.BorderBackgroundColor(DarkBackground)
+		.Padding(FMargin(2))
 		[
 			SNew(SVerticalBox)
 
@@ -190,6 +191,7 @@ void SRVNNodeList::CollectNodes()
 				Class->GetDisplayNameText().ToString(),
 				Class->GetPathName()
 			);
+
 			NodeCategories[TEXT("Task")]->Nodes.Add(NodeInfo);
 		}
 	}
@@ -204,6 +206,7 @@ void SRVNNodeList::CollectNodes()
 				Class->GetDisplayNameText().ToString(),
 				Class->GetPathName()
 			);
+
 			NodeCategories[TEXT("Condition")]->Nodes.Add(NodeInfo);
 		}
 	}
@@ -349,21 +352,25 @@ FReply SRVNNodeList::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		TSharedPtr<FRVNClassInfo> NodeUnderMouse = GetNodeUnderMouse(MyGeometry, MouseEvent);
+
 		if (NodeUnderMouse.IsValid())
 		{
 			return FReply::Handled().DetectDrag(SharedThis(this), EKeys::LeftMouseButton);
 		}
 	}
+
 	return FReply::Unhandled();
 }
 
 FReply SRVNNodeList::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	TSharedPtr<FRVNClassInfo> NodeToDrag = GetNodeUnderMouse(MyGeometry, MouseEvent);
+
 	if (NodeToDrag.IsValid())
 	{
-		return FReply::Handled().BeginDragDrop(FRVNNodeDragDropOp::New(NodeToDrag, DialogueGraph.Get()));
+		return FReply::Handled().BeginDragDrop(FRVNNodeDragDropOp::New(NodeToDrag->GetClass(), DialogueGraph.Get()));
 	}
+
 	return FReply::Unhandled();
 }
 

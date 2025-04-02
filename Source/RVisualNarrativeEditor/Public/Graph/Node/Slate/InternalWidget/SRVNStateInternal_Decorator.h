@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "ClassCollector/RVNClassCollector.h"
+#include "Decorator/RVNDecorator.h"
 
 class SRVNStateWidget;
 
@@ -9,21 +9,23 @@ class SRVNStateInternal_Decorator : public SCompoundWidget
 {
 	friend class FRVNDecoratorDragDropOp;
 
-	DECLARE_DELEGATE_OneParam(FOnDeleteDecoratorRequested, const FRVNClassInfo&)
+	DECLARE_DELEGATE_OneParam(FOnSelectedDecorator, URVNDecorator*)
+	DECLARE_DELEGATE_OneParam(FOnDeleteDecoratorRequested, URVNDecorator*)
 
 public:
 	SLATE_BEGIN_ARGS(SRVNStateInternal_Decorator)
 		{
 		}
 
-		SLATE_ARGUMENT(FRVNClassInfo, DecoratorInfo)
+		SLATE_ARGUMENT(URVNDecorator*, DecoratorPtr)
 		SLATE_ARGUMENT(TWeakPtr<SRVNStateWidget>, OuterNode)
+		SLATE_EVENT(FOnSelectedDecorator, OnSelectedDecorator)
 		SLATE_EVENT(FOnDeleteDecoratorRequested, OnDeleteRequested)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
 
-	FORCEINLINE FRVNClassInfo GetDecoratorInfo() const { return DecoratorInfo; }
+	FORCEINLINE URVNDecorator* GetDecoratorPtr() const { return DecoratorPtr; }
 
 	FORCEINLINE TWeakPtr<SRVNStateWidget> GetOuterNode() const { return OuterNode.Pin(); }
 
@@ -47,10 +49,11 @@ private:
 	bool IsSelected() const { return bIsSelected; }
 
 public:
+	FOnSelectedDecorator OnSelectedDecorator;
 	FOnDeleteDecoratorRequested OnDeleteRequested;
 
 private:
-	FRVNClassInfo DecoratorInfo;
+	URVNDecorator* DecoratorPtr;
 
 	TWeakPtr<SRVNStateWidget> OuterNode;
 

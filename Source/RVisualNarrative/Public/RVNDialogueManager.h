@@ -55,7 +55,7 @@ public:
 private:
 	TWeakObjectPtr<URVNComponent> RVNComponent;
 
-	TArray<UClass*> CurrentTasks;
+	TArray<URVNTaskBase*> CurrentTasks;
 	int32 PendingProcessCount;
 	int32 CompletedTaskCount;
 

@@ -1,9 +1,7 @@
 ﻿#include "RVNDialogueManager.h"
-
 #include "RVNComponent.h"
 #include "Decorator/Task/RVNTask.h"
 #include "Decorator/Task/RVNAsyncTask.h"
-#include "RVNClassInfo.h"
 #include "Decorator/Condition/RVNCondition.h"
 #include "Decorator/Task/RVNSyncTask.h"
 
@@ -74,30 +72,23 @@ bool URVNDialogueManager::CheckAllConditions(int32 InNodeId) const
 		return false;
 	}
 
-	for (auto ConditionInfo : NodeData.Conditions)
+	for (auto CurrentCondition : NodeData.Conditions)
 	{
-		const auto ConditionClass = ConditionInfo.GetClass();
-
-		if (ConditionClass == nullptr)
+		if (CurrentCondition == nullptr)
 		{
 			continue;
 		}
 
-		const auto ConditionCDO = Cast<URVNConditionBase>(ConditionClass->ClassDefaultObject);
-
-		if (ConditionCDO == nullptr)
-		{
-			continue;
-		}
+		const auto ConditionClass = CurrentCondition->GetClass();
 
 		if (!ConditionClass->HasAnyClassFlags(CLASS_Native))
 		{
 			FRVNConditionParams ConditionParams;
 			ConditionParams.InRVNComponent = RVNComponent.Get();
 
-			if (const auto CheckConditionFunc = ConditionCDO->FindFunction(TEXT("CheckCondition")))
+			if (const auto CheckConditionFunc = CurrentCondition->FindFunction(TEXT("CheckCondition")))
 			{
-				ConditionCDO->ProcessEvent(CheckConditionFunc, &ConditionParams);
+				CurrentCondition->ProcessEvent(CheckConditionFunc, &ConditionParams);
 			}
 
 			if (!ConditionParams.bIsPass)
@@ -107,7 +98,7 @@ bool URVNDialogueManager::CheckAllConditions(int32 InNodeId) const
 		}
 		else
 		{
-			if (!ConditionCDO->CheckCondition_Implementation(RVNComponent.Get()))
+			if (!CurrentCondition->CheckCondition_Implementation(RVNComponent.Get()))
 			{
 				return false;
 			}
@@ -135,52 +126,45 @@ void URVNDialogueManager::ProcessAllTasks(int32 InNodeId)
 	CurrentTasks.Empty();
 	CurrentTasks.Reserve(NodeData.Tasks.Num());
 
-	for (auto TaskInfo : NodeData.Tasks)
+	for (auto CurrentTask : NodeData.Tasks)
 	{
-		const auto TaskClass = TaskInfo.GetClass();
-
-		if (TaskClass == nullptr)
+		if (CurrentTask == nullptr)
 		{
 			continue;
 		}
 
-		CurrentTasks.Add(TaskClass);
+		CurrentTasks.Add(CurrentTask);
 	}
 
 	// OnState
-	for (auto TaskClass : CurrentTasks)
+	for (const auto CurrentTask : CurrentTasks)
 	{
-		const auto TaskCDO = Cast<URVNTaskBase>(TaskClass->ClassDefaultObject);
-
-		if (TaskCDO == nullptr)
-		{
-			continue;
-		}
+		const auto TaskClass = CurrentTask->GetClass();
 
 		if (!TaskClass->HasAnyClassFlags(CLASS_Native))
 		{
 			FRVNTaskParams ConditionParams;
 			ConditionParams.InRVNComponent = RVNComponent.Get();
 
-			if (const auto StartTaskFunc = TaskCDO->FindFunction(TEXT("OnStart")))
+			if (const auto StartTaskFunc = CurrentTask->FindFunction(TEXT("OnStart")))
 			{
-				TaskCDO->ProcessEvent(StartTaskFunc, &ConditionParams);
+				CurrentTask->ProcessEvent(StartTaskFunc, &ConditionParams);
 			}
 		}
 		else
 		{
-			TaskCDO->OnStart_Implementation(RVNComponent.Get());
+			CurrentTask->OnStart_Implementation(RVNComponent.Get());
 		}
 	}
 
 	// ExecuteTask
-	for (auto TaskClass : CurrentTasks)
+	for (const auto CurrentTask : CurrentTasks)
 	{
-		if (const auto TaskCDO = Cast<URVNTaskBase>(TaskClass->ClassDefaultObject))
+		if (const auto TaskClass = CurrentTask->GetClass())
 		{
-			if (const auto AsyncTask = Cast<URVNAsyncTask>(TaskCDO))
+			if (const auto AsyncTask = Cast<URVNAsyncTask>(CurrentTask))
 			{
-				AsyncTask->GetCompletedCallback().BindUObject(this, &URVNDialogueManager::OnTaskCompleted, TaskCDO);
+				AsyncTask->GetCompletedCallback().BindUObject(this, &URVNDialogueManager::OnTaskCompleted, CurrentTask);
 			}
 
 			if (!TaskClass->HasAnyClassFlags(CLASS_Native))
@@ -188,19 +172,19 @@ void URVNDialogueManager::ProcessAllTasks(int32 InNodeId)
 				FRVNTaskParams ConditionParams;
 				ConditionParams.InRVNComponent = RVNComponent.Get();
 
-				if (const auto ExecuteTaskFunc = TaskCDO->FindFunction(TEXT("ExecuteTask")))
+				if (const auto ExecuteTaskFunc = CurrentTask->FindFunction(TEXT("ExecuteTask")))
 				{
-					TaskCDO->ProcessEvent(ExecuteTaskFunc, &ConditionParams);
+					CurrentTask->ProcessEvent(ExecuteTaskFunc, &ConditionParams);
 				}
 			}
 			else
 			{
-				TaskCDO->ExecuteTask_Implementation(RVNComponent.Get());
+				CurrentTask->ExecuteTask_Implementation(RVNComponent.Get());
 			}
 
-			if (const auto SyncTask = Cast<URVNSyncTask>(TaskCDO))
+			if (const auto SyncTask = Cast<URVNSyncTask>(CurrentTask))
 			{
-				OnTaskCompleted(TaskCDO);
+				OnTaskCompleted(SyncTask);
 			}
 		}
 	}
@@ -208,11 +192,11 @@ void URVNDialogueManager::ProcessAllTasks(int32 InNodeId)
 
 void URVNDialogueManager::BreakCurrentDialogue()
 {
-	for (auto TaskClass : CurrentTasks)
+	for (const auto CurrentTask : CurrentTasks)
 	{
-		if (const auto TaskCDO = Cast<URVNTaskBase>(TaskClass->ClassDefaultObject))
+		if (const auto TaskClass = CurrentTask->GetClass())
 		{
-			if (const auto AsyncTask = Cast<URVNAsyncTask>(TaskCDO))
+			if (const auto AsyncTask = Cast<URVNAsyncTask>(CurrentTask))
 			{
 				if (!TaskClass->HasAnyClassFlags(CLASS_Native))
 				{
@@ -244,23 +228,23 @@ void URVNDialogueManager::OnTaskCompleted(URVNTaskBase* CompletedTask)
 
 	if (CompletedTaskCount >= PendingProcessCount)
 	{
-		for (auto TaskClass : CurrentTasks)
+		for (const auto CurrentTask : CurrentTasks)
 		{
-			if (const auto TaskCDO = Cast<URVNTaskBase>(TaskClass->ClassDefaultObject))
+			if (const auto TaskClass = CurrentTask->GetClass())
 			{
 				if (!TaskClass->HasAnyClassFlags(CLASS_Native))
 				{
 					FRVNTaskParams ConditionParams;
 					ConditionParams.InRVNComponent = RVNComponent.Get();
 
-					if (const auto EndTaskFunc = TaskCDO->FindFunction(TEXT("OnEnd")))
+					if (const auto EndTaskFunc = CurrentTask->FindFunction(TEXT("OnEnd")))
 					{
-						TaskCDO->ProcessEvent(EndTaskFunc, &ConditionParams);
+						CurrentTask->ProcessEvent(EndTaskFunc, &ConditionParams);
 					}
 				}
 				else
 				{
-					TaskCDO->OnEnd_Implementation(RVNComponent.Get());
+					CurrentTask->OnEnd_Implementation(RVNComponent.Get());
 				}
 			}
 		}

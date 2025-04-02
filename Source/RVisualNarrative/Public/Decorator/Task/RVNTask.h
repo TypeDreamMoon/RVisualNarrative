@@ -9,7 +9,7 @@ struct FRVNTaskParams
 	URVNComponent* InRVNComponent = nullptr;
 };
 
-UCLASS(Abstract, Blueprintable)
+UCLASS(Blueprintable)
 class RVISUALNARRATIVE_API URVNTaskBase : public URVNDecorator
 {
 	GENERATED_BODY()

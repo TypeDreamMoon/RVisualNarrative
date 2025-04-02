@@ -18,22 +18,26 @@
 		{
 			"Name": "RVisualNarrative",
 			"Type": "Runtime",
-			"LoadingPhase": "PreLoadingScreen"
+			"LoadingPhase": "PreLoadingScreen",
+			"WhitelistPlatforms": ["Win64"]
 		},
 		{
 			"Name": "RVisualNarrativeCore",
 			"Type": "Runtime",
-			"LoadingPhase": "PreEarlyLoadingScreen"
+			"LoadingPhase": "PreEarlyLoadingScreen",
+			"WhitelistPlatforms": ["Win64"]
 		},
 		{
 			"Name": "RVisualNarrativeEditor",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": ["Win64"]
 		},
 		{
 			"Name": "CrossVersion",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": ["Win64"]
 		}
 	]
 }

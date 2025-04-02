@@ -3,6 +3,9 @@
 #include "CoreMinimal.h"
 #include "SGraphNode.h"
 
+class URVNDecorator;
+class URVNTaskBase;
+class URVNConditionBase;
 class URVNStateNode;
 class SRVNNodeIndex;
 struct FRVNClassInfo;
@@ -20,7 +23,7 @@ public:
 
 	void Construct(const FArguments& InArgs, URVNStateNode* InNode);
 
-	void Refresh(URVNStateNode* InNode);
+	void UpdateDelegate(URVNStateNode* InNode);
 
 	TWeakObjectPtr<URVNStateNode> GetStateNode() const { return StateNode; }
 
@@ -48,12 +51,12 @@ protected:
 	void OnDialogTextChanged(const FText& NewText);
 
 	void HandleNodeIdChanged();
-	void HandleAddCondition(FRVNClassInfo ConditionInfo);
-	void HandleRemoveCondition(FRVNClassInfo ConditionInfo);
-	void HandleAddTask(FRVNClassInfo TaskInfo);
-	void HandleRemoveTask(FRVNClassInfo TaskInfo);
+	void HandleAddCondition(URVNConditionBase* ConditionInfo);
+	void HandleRemoveCondition(URVNConditionBase* ConditionInfo);
+	void HandleAddTask(URVNTaskBase* TaskInfo);
+	void HandleRemoveTask(URVNTaskBase* TaskInfo);
 
-	TSharedRef<SWidget> CreateSlotItemWidget(const FRVNClassInfo& ItemInfo);
+	TSharedRef<SWidget> CreateSlotItemWidget(URVNDecorator* InItem);
 
 private:
 	TWeakObjectPtr<URVNStateNode> StateNode;
@@ -71,8 +74,8 @@ private:
 	TSharedPtr<SVerticalBox> NodeSlot1Box;
 	TSharedPtr<SVerticalBox> NodeSlot2Box;
 
-	TMap<FRVNClassInfo, TSharedPtr<SWidget>> ConditionSlotItems;
-	TMap<FRVNClassInfo, TSharedPtr<SWidget>> TaskSlotItems;
+	TMap<TObjectPtr<URVNConditionBase>, TSharedPtr<SWidget>> ConditionSlotItems;
+	TMap<TObjectPtr<URVNTaskBase>, TSharedPtr<SWidget>> TaskSlotItems;
 
 	TSharedPtr<SBox> DialogTextBox;
 	TSharedPtr<SMultiLineEditableTextBox> DialogTextEditor;

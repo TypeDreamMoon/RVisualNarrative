@@ -10,7 +10,7 @@ struct FRVNConditionParams
 	URVNComponent* InRVNComponent = nullptr;
 };
 
-UCLASS(Abstract, Blueprintable)
+UCLASS(Blueprintable)
 class RVISUALNARRATIVE_API URVNConditionBase : public URVNDecorator
 {
 	GENERATED_BODY()

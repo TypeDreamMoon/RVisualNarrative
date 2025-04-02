@@ -1,6 +1,6 @@
 ﻿#include "Toolbar/RVNBlueprintToolBar.h"
-
 #include "BlueprintEditorModule.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "RVNAssetBlueprint.h"
 #include "RVNComponent.h"
 #include "RVNEditorCommands.h"
@@ -54,6 +54,8 @@ void FRVNBlueprintToolBar::BuildAction()
 
 			if (const auto RVNComponent = Cast<URVNComponent>(Blueprint->GeneratedClass->ClassDefaultObject))
 			{
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint.Get());
+
 				RVNComponent->CompactNodesData();
 			}
 		}), FCanExecuteAction());

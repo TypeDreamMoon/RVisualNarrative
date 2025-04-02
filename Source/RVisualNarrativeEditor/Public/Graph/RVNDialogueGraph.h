@@ -1,9 +1,10 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "RVNComponent.h"
 #include "EdGraph/EdGraph.h"
+#include "RVNComponent.h"
 #include "Graph/Node/RVNStateNode.h"
+#include "RVNClassInfo.h"
 #include "RVNDialogueGraph.generated.h"
 
 class URVNComponent;
@@ -48,6 +49,8 @@ public:
 
 	URVNStateNode* CreateStateNode(ENodeType InType, const FVector2D& InPosition);
 
+	URVNDecorator* CreateDecorator(const UClass* InDecoratorClass) const;
+
 	void ProcessPasteNodes(const TArray<URVNStateNode*>& InStateNodes);
 
 	bool GetNodeData(int32 InNodeId, FRVNNodeData& OutData) const;
@@ -68,15 +71,17 @@ public:
 
 	TSharedPtr<SGraphNode> GetNodeWidgetFromGuid(const FGuid InGuid) const;
 
-	FORCEINLINE void RemoveStateNode(int32 InNodeId) const;
+	void SetSelectedDecorator(URVNDecorator* InDecorator);
 
-	FORCEINLINE void AddCondition(int32 NodeId, const FRVNClassInfo& Condition) const;
+	void RemoveStateNode(int32 InNodeId) const;
 
-	FORCEINLINE void RemoveCondition(int32 NodeId, const FRVNClassInfo& Condition) const;
+	void AddCondition(int32 NodeId, URVNConditionBase* Condition) const;
 
-	FORCEINLINE void AddTask(int32 NodeId, const FRVNClassInfo& Task) const;
+	void RemoveCondition(int32 NodeId, URVNConditionBase* Condition) const;
 
-	FORCEINLINE void RemoveTask(int32 NodeId, const FRVNClassInfo& Task) const;
+	void AddTask(int32 NodeId, URVNTaskBase* Task) const;
+
+	void RemoveTask(int32 NodeId, URVNTaskBase* Task) const;
 
 public:
 	UPROPERTY()
