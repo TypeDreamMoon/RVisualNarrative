@@ -593,11 +593,6 @@ URVNDialogueGraph* FRVNEditor::GetRVNDialogueGraph() const
 	return Cast<URVNDialogueGraph>(DialogueGraphPtr.Get());
 }
 
-TSharedPtr<FRVNEditorToolbarBuilder> FRVNEditor::GetRVNToolbarBuilder()
-{
-	return RVNToolbarBuilder;
-}
-
 TSharedPtr<FDocumentTracker> FRVNEditor::GetDocumentManager()
 {
 	return DocumentManager;

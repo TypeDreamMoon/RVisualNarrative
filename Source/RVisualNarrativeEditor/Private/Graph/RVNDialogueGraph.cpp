@@ -2,6 +2,7 @@
 #include "SGraphPanel.h"
 #include "RVNComponent.h"
 #include "RVNEditor.h"
+#include "Decorator/Condition/RVNCondition.h"
 #include "Graph/Node/Slate/SRVNStateNode.h"
 
 URVNDialogueGraph::URVNDialogueGraph()

@@ -71,7 +71,10 @@ public:
 
 	FORCEINLINE URVNDialogueGraph* GetRVNDialogueGraph() const;
 
-	FORCEINLINE TSharedPtr<FRVNEditorToolbarBuilder> GetRVNToolbarBuilder();
+	FORCEINLINE TSharedPtr<FRVNEditorToolbarBuilder> GetRVNToolbarBuilder()
+	{
+		return RVNToolbarBuilder;
+	}
 
 	FORCEINLINE TSharedPtr<FDocumentTracker> GetDocumentManager();
 
